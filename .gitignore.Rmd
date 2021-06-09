@@ -1,0 +1,2 @@
+# Ordner ignorieren
+_site/

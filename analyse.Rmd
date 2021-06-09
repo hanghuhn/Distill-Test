@@ -1,0 +1,66 @@
+---
+title: "analyse"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggforce)
+```
+
+# Daten laden (Ergebnisse von NRW)
+```{r}
+
+parties <- c("CDU", "SPD", "GRÜNE", "LINKE", "FDP", "AfD" )
+perc_votes_nrw <- c(32.6, 26.0, 7.6, 7.5, 13.1, 9.4)
+
+election_nrw <- data.frame(parties, perc_votes_nrw)
+```
+
+# Daten anpassen für NRW
+Daten werden gefiltert und sortiert (NRW)
+```{r}
+pie_data_nrw <- election_nrw %>%
+  arrange(perc_votes_nrw) %>% # sort so pie slices end up sorted
+  mutate(
+    end_angle = 2*pi*cumsum(perc_votes_nrw)/sum(perc_votes_nrw),   # ending angle for each pie slice
+    start_angle = lag(end_angle, default = 0),   # starting angle for each pie slice
+    mid_angle = 0.5*(start_angle + end_angle),   # middle of each pie slice, for text labels
+    # horizontal and vertical justifications for outer labels
+    hjust = ifelse(mid_angle > pi, 1, 0),
+    vjust = ifelse(mid_angle < pi/2 | mid_angle > 3*pi/2, 0, 1)
+  )
+pie_data_nrw
+```
+
+# Plots für NRW generieren
+```{r}
+p <- election_nrw %>% ggplot()
+ggplot(pie_data_nrw) +
+  aes(
+    x0 = 0, y0 = 0, r0 = 0.4, r = 1,
+    start = start_angle, end = end_angle,
+    fill = parties
+  ) +
+  geom_arc_bar() +
+  geom_text( # place amounts inside the pie
+    aes(
+      x = 0.7 * sin(mid_angle),
+      y = 0.7 * cos(mid_angle),
+      label = perc_votes_nrw,
+     fill = parties
+     ),
+      colour = "white"
+  ) +
+  geom_text( # place party name outside the pie
+    aes(
+      x = 1.05 * sin(mid_angle),
+      y = 1.05 * cos(mid_angle),
+      label = parties,
+      hjust = hjust, vjust = vjust,
+    ) 
+  ) +
+  scale_fill_manual(values = c(CDU = "#0C0C0C", SPD = "#E4000F", AfD = "#009DE0", FDP = "#FEED01", GRÜNE = "#65A22C", LINKE = "#E90098")) +
+  coord_fixed(xlim = c(-1.8, 1.3)) 
+```
